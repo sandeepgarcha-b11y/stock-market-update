@@ -74,7 +74,8 @@ NEWS_FEEDS = [
     "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US",
 ]
 
-MAX_HEADLINES = 3
+MAX_HEADLINES = 6
+MAX_PER_FEED = 3
 
 
 # ---------------------------------------------------------------------------
@@ -110,12 +111,16 @@ def fetch_headlines():
             resp = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
             resp.raise_for_status()
             root = ET.fromstring(resp.content)
+            from_this_feed = 0
             for item in root.iter("item"):
                 title = item.findtext("title", "").strip()
                 if title and title not in headlines:
                     headlines.append(title)
-                if len(headlines) >= MAX_HEADLINES:
-                    return headlines
+                    from_this_feed += 1
+                if len(headlines) >= MAX_HEADLINES or from_this_feed >= MAX_PER_FEED:
+                    break
+            if len(headlines) >= MAX_HEADLINES:
+                return headlines
         except Exception as exc:  # a dead feed shouldn't kill the digest
             print(f"warning: feed failed {url}: {exc}", file=sys.stderr)
     return headlines
