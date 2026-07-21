@@ -188,8 +188,8 @@ def build_message():
 # ---------------------------------------------------------------------------
 
 def send_telegram(message):
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
     if not token or not chat_id:
         sys.exit("error: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set")
     resp = requests.post(
