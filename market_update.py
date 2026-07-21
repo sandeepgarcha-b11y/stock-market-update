@@ -71,7 +71,8 @@ COMMODITIES_FX = [
 
 NEWS_FEEDS = [
     "https://www.cnbc.com/id/100003114/device/rss/rss.html",  # CNBC Markets
-    "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US",
+    "https://feeds.bbci.co.uk/news/business/rss.xml",  # BBC Business
+    "https://feeds.content.dowjones.io/public/rss/mw_topstories",  # MarketWatch
 ]
 
 MAX_HEADLINES = 6
@@ -103,6 +104,17 @@ def fetch_quotes(pairs):
     return quotes
 
 
+def is_clickbait(title):
+    """Filter out listicle/SEO filler so only real news gets through."""
+    lower = title.lower()
+    spam_markers = (
+        "better buy", "should you buy", "is it time to", "here's why",
+        "heres why", "vs.", " etf", "motley fool", "zacks", "top stocks",
+        "stocks to", "reasons to", "prediction:", "if you'd invested",
+    )
+    return "?" in title or any(m in lower for m in spam_markers)
+
+
 def fetch_headlines():
     """Return up to MAX_HEADLINES headline strings from the news feeds."""
     headlines = []
@@ -114,7 +126,7 @@ def fetch_headlines():
             from_this_feed = 0
             for item in root.iter("item"):
                 title = item.findtext("title", "").strip()
-                if title and title not in headlines:
+                if title and title not in headlines and not is_clickbait(title):
                     headlines.append(title)
                     from_this_feed += 1
                 if len(headlines) >= MAX_HEADLINES or from_this_feed >= MAX_PER_FEED:
