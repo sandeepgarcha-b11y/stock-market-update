@@ -1,0 +1,28 @@
+name: Daily Market Update
+
+on:
+  schedule:
+    # 06:00 UTC daily = 7am UK summer (BST) / 6am UK winter (GMT)
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  send-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Send market update
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python market_update.py
