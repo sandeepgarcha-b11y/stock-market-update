@@ -115,8 +115,55 @@ def is_clickbait(title):
     return "?" in title or any(m in lower for m in spam_markers)
 
 
+# A headline must mention at least one of these to count as market news.
+# Single words are matched as whole words; phrases as substrings.
+MARKET_WORDS = {
+    # markets & macro
+    "stock", "stocks", "shares", "market", "markets", "nasdaq", "s&p",
+    "dow", "invest", "investor", "investors", "trader", "traders",
+    "trading", "bond", "bonds", "yield", "yields", "treasury", "ipo",
+    "earnings", "revenue", "profit", "profits", "valuation", "merger",
+    "acquisition", "acquires", "buyback", "dividend", "fed", "inflation",
+    "cpi", "gdp", "recession", "tariff", "tariffs", "economy", "economic",
+    "ecb", "unemployment", "payrolls",
+    # assets
+    "bitcoin", "crypto", "ethereum", "opec", "crude", "dollar", "currency",
+    "fx", "gold", "oil",
+    # the watchlist & big tech
+    "apple", "microsoft", "nvidia", "amazon", "alphabet", "google",
+    "meta", "tesla", "amd", "broadcom", "tsmc", "palantir", "intel",
+    "openai", "anthropic", "chip", "chips", "chipmaker", "semiconductor",
+    "ai",
+}
+
+MARKET_PHRASES = (
+    "wall street", "hedge fund", "short sell", "federal reserve",
+    "rate cut", "rate hike", "interest rate", "trade deal", "trade war",
+    "central bank", "bank of england", "jobs report", "big tech",
+)
+
+
+def is_market_relevant(title):
+    lower = title.lower()
+    tokens = {w.strip(".,:;!'\"’‘()") for w in lower.split()}
+    return bool(tokens & MARKET_WORDS) or any(p in lower for p in MARKET_PHRASES)
+
+
+def is_near_duplicate(title, picked):
+    """True if this headline covers the same story as one already picked."""
+    stop = {"the", "a", "an", "of", "to", "in", "on", "for", "and", "as",
+            "at", "with", "over", "after", "is", "are", "its", "his", "her",
+            "new", "us", "u.s.", "says", "say"}
+    words = {w.strip(".,:;'\"’‘") for w in title.lower().split()} - stop
+    for other in picked:
+        other_words = {w.strip(".,:;'\"’‘") for w in other.lower().split()} - stop
+        if len(words & other_words) >= 3:
+            return True
+    return False
+
+
 def fetch_headlines():
-    """Return up to MAX_HEADLINES headline strings from the news feeds."""
+    """Return up to MAX_HEADLINES market-relevant headlines from the feeds."""
     headlines = []
     for url in NEWS_FEEDS:
         try:
@@ -126,7 +173,9 @@ def fetch_headlines():
             from_this_feed = 0
             for item in root.iter("item"):
                 title = item.findtext("title", "").strip()
-                if title and title not in headlines and not is_clickbait(title):
+                if (title and not is_clickbait(title)
+                        and is_market_relevant(title)
+                        and not is_near_duplicate(title, headlines)):
                     headlines.append(title)
                     from_this_feed += 1
                 if len(headlines) >= MAX_HEADLINES or from_this_feed >= MAX_PER_FEED:
