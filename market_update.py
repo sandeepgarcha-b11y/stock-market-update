@@ -84,6 +84,17 @@ MAX_PER_FEED = 3
 # Data fetching
 # ---------------------------------------------------------------------------
 
+def _quote_from_closes(closes):
+    """Turn a close-price series into (last, pct_change) or None."""
+    closes = closes.dropna()
+    if len(closes) >= 2:
+        last, prev = float(closes.iloc[-1]), float(closes.iloc[-2])
+        return last, (last - prev) / prev * 100.0
+    if len(closes) == 1:
+        return float(closes.iloc[-1]), None
+    return None
+
+
 def fetch_quotes(pairs):
     """Return {symbol: (last_price, pct_change)} for a list of (symbol, label)."""
     symbols = [s for s, _ in pairs]
@@ -94,14 +105,25 @@ def fetch_quotes(pairs):
     quotes = {}
     for sym in symbols:
         try:
-            closes = (data[sym]["Close"] if len(symbols) > 1 else data["Close"]).dropna()
-            if len(closes) >= 2:
-                last, prev = float(closes.iloc[-1]), float(closes.iloc[-2])
-                quotes[sym] = (last, (last - prev) / prev * 100.0)
-            elif len(closes) == 1:
-                quotes[sym] = (float(closes.iloc[-1]), None)
+            closes = data[sym]["Close"] if len(symbols) > 1 else data["Close"]
+            quote = _quote_from_closes(closes)
+            if quote:
+                quotes[sym] = quote
         except (KeyError, IndexError, TypeError):
             pass
+
+    # The batch download intermittently drops symbols; retry the misses one
+    # at a time, which usually succeeds.
+    for sym in symbols:
+        if sym in quotes:
+            continue
+        try:
+            hist = yf.Ticker(sym).history(period="5d", interval="1d")
+            quote = _quote_from_closes(hist["Close"])
+            if quote:
+                quotes[sym] = quote
+        except Exception as exc:  # a single dud symbol shouldn't break the run
+            print(f"warning: quote retry failed {sym}: {exc}", file=sys.stderr)
     return quotes
 
 
