@@ -295,6 +295,95 @@ def section(title, pairs, quotes):
     return "\n".join(lines)
 
 
+def move_verb(pct):
+    """A plain-English verb for a percentage move."""
+    if pct is None:
+        return "was flat"
+    if pct >= 2:
+        return "jumped"
+    if pct >= 0.75:
+        return "rose"
+    if pct >= 0.1:
+        return "edged up"
+    if pct > -0.1:
+        return "was flat"
+    if pct > -0.75:
+        return "slipped"
+    if pct > -2:
+        return "fell"
+    return "tumbled"
+
+
+def _pct(pct):
+    return f"{pct:+.1f}%"
+
+
+def build_brief(quotes):
+    """A short, plain-English 'here's the vibe' paragraph built from the data.
+
+    Deliberately jargon-light — the numbers below are there for anyone who
+    wants the detail.
+    """
+    bits = []
+
+    # US session + where futures are pointing.
+    sp = quotes.get("^GSPC")
+    fut = quotes.get("ES=F") or quotes.get("NQ=F")
+    if sp:
+        sentence = f"Wall Street {move_verb(sp[1])} at the last close"
+        if fut and fut[1] is not None and sp[1] is not None:
+            contrast = (sp[1] < 0) != (fut[1] < 0)  # close and futures disagree
+            joiner = "but" if contrast else "and"
+            if fut[1] >= 0.1:
+                sentence += f", {joiner} US futures are pointing higher into today"
+            elif fut[1] <= -0.1:
+                sentence += f", {joiner} US futures are easing ahead of the open"
+            else:
+                sentence += ", with futures little changed"
+        bits.append(sentence + ".")
+
+    # Best and worst of the tech watchlist.
+    labels = {s: l for s, l in TECH_STOCKS}
+    moved = [(s, q[1]) for s, q in quotes.items()
+             if s in labels and q[1] is not None]
+    if len(moved) >= 2:
+        best = max(moved, key=lambda x: x[1])
+        worst = min(moved, key=lambda x: x[1])
+        if best[0] != worst[0]:
+            bits.append(
+                f"In your tech names, {labels[best[0]]} {move_verb(best[1])} "
+                f"({_pct(best[1])}) while {labels[worst[0]]} {move_verb(worst[1])} "
+                f"({_pct(worst[1])})."
+            )
+
+    # Notable moves elsewhere, only when they're actually worth a mention.
+    extras = []
+    for sym, name, threshold in (
+        ("GC=F", "gold", 0.75),
+        ("BTC-USD", "bitcoin", 1.0),
+        ("CL=F", "oil", 1.5),
+    ):
+        q = quotes.get(sym)
+        if q and q[1] is not None and abs(q[1]) >= threshold:
+            extras.append((name, move_verb(q[1])))
+    if extras:
+        names = [n for n, _ in extras]
+        verbs = {v for _, v in extras}
+        if len(verbs) == 1 and len(extras) > 1:
+            # Same direction word — collapse it: "gold and bitcoin both rose".
+            joined_names = ", ".join(names[:-1]) + " and " + names[-1]
+            sentence = f"{joined_names} both {extras[0][1]}"
+        else:
+            phrases = [f"{n} {v}" for n, v in extras]
+            sentence = (phrases[0] if len(phrases) == 1
+                        else ", ".join(phrases[:-1]) + " and " + phrases[-1])
+        bits.append(sentence[0].upper() + sentence[1:] + ".")
+
+    if not bits:
+        return ""
+    return "🗒 <b>The mood:</b> " + " ".join(bits)
+
+
 def build_message():
     all_pairs = US_INDICES + US_FUTURES + TECH_STOCKS + GLOBAL_INDICES + CRYPTO + COMMODITIES_FX
     quotes = fetch_quotes(all_pairs)
@@ -302,6 +391,10 @@ def build_message():
 
     today = dt.datetime.now(dt.timezone.utc).strftime("%a %d %b %Y")
     parts = [f"📊 <b>Market Update — {today}</b>"]
+
+    brief = build_brief(quotes)
+    if brief:
+        parts.append(brief)
 
     parts.append(section("🇺🇸 US Markets (prev close)", US_INDICES, quotes))
     parts.append(section("⏳ US Futures (live)", US_FUTURES, quotes))
