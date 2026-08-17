@@ -165,10 +165,27 @@ MARKET_PHRASES = (
     "central bank", "bank of england", "jobs report", "big tech",
 )
 
+# Human-interest / lifestyle markers that veto a headline even when it
+# happens to contain a market keyword (e.g. an "AI" story about a shopper).
+# Whole-word matches to avoid false hits ("pet" inside "Peter").
+NON_MARKET_VETO_WORDS = {
+    "shopper", "shoppers", "shoplifter", "ejected", "arrested", "outbreak",
+    "rental", "tenant", "pet", "pets", "recipe", "holiday", "tourist",
+    "celebrity", "royal", "footballer", "olympic", "olympics", "weather",
+    "wedding",
+}
+NON_MARKET_VETO_PHRASES = ("world cup",)
+
+
+def _tokens(text):
+    return {w.strip(".,:;!'\"’‘()") for w in text.lower().split()}
+
 
 def is_market_relevant(title):
     lower = title.lower()
-    tokens = {w.strip(".,:;!'\"’‘()") for w in lower.split()}
+    tokens = _tokens(lower)
+    if tokens & NON_MARKET_VETO_WORDS or any(p in lower for p in NON_MARKET_VETO_PHRASES):
+        return False
     return bool(tokens & MARKET_WORDS) or any(p in lower for p in MARKET_PHRASES)
 
 
