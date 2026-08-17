@@ -14,6 +14,7 @@ Required environment variables (for sending):
 """
 
 import os
+import re
 import sys
 import html
 import datetime as dt
@@ -162,9 +163,36 @@ def is_near_duplicate(title, picked):
     return False
 
 
+SUMMARY_MAX_CHARS = 180
+
+
+def clean_summary(raw, title):
+    """Turn a raw RSS description into a short plain-text context line.
+
+    Returns "" if the description is empty or adds nothing beyond the title.
+    """
+    if not raw:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", raw)          # strip HTML tags
+    text = html.unescape(text)
+    text = re.sub(r"\s+", " ", text).strip()
+    # Some feeds prefix the summary with the source or repeat the title.
+    text = re.sub(r"^(continue reading|read more)[.:\s-]*", "", text, flags=re.I)
+    if not text:
+        return ""
+    # Skip summaries that just echo the headline.
+    if text.lower().startswith(title.lower()[:40]):
+        return ""
+    if len(text) > SUMMARY_MAX_CHARS:
+        cut = text[:SUMMARY_MAX_CHARS].rsplit(" ", 1)[0].rstrip(",;:")
+        text = cut + "…"
+    return text
+
+
 def fetch_headlines():
-    """Return up to MAX_HEADLINES market-relevant headlines from the feeds."""
+    """Return up to MAX_HEADLINES (title, summary) pairs from the feeds."""
     headlines = []
+    titles = []
     for url in NEWS_FEEDS:
         try:
             resp = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
@@ -175,8 +203,10 @@ def fetch_headlines():
                 title = item.findtext("title", "").strip()
                 if (title and not is_clickbait(title)
                         and is_market_relevant(title)
-                        and not is_near_duplicate(title, headlines)):
-                    headlines.append(title)
+                        and not is_near_duplicate(title, titles)):
+                    summary = clean_summary(item.findtext("description", ""), title)
+                    headlines.append((title, summary))
+                    titles.append(title)
                     from_this_feed += 1
                 if len(headlines) >= MAX_HEADLINES or from_this_feed >= MAX_PER_FEED:
                     break
@@ -243,7 +273,11 @@ def build_message():
 
     if headlines:
         news = ["<b>📰 Headlines</b>"]
-        news += [f"• {html.escape(h)}" for h in headlines]
+        for title, summary in headlines:
+            line = f"• <b>{html.escape(title)}</b>"
+            if summary:
+                line += f"\n  {html.escape(summary)}"
+            news.append(line)
         parts.append("\n".join(news))
 
     return "\n\n".join(parts)
