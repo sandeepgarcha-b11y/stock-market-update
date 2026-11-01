@@ -254,7 +254,7 @@ Bull case: record industrial robot installations and orders (driven by AI/semico
 
 **Bull points**
 - Record IFR installations (603,307 in 2025), installed base ~5m, forecast growth to 806k by 2029 — [IFR](https://ifr.org/img/worldrobotics/Executive_Summary_WR_2026_-_Industrial_Robots.pdf)
-- Record orders at Fanuc (Apr–Jun 2026, +36.9%) and Yaskawa (Jul–Sep 2026, +38%) on AI/semis/data-centre demand — [TechNews](https://finance.technews.tw/2026/08/03/fanuc-raises-full-year-forecast/); [Quartr](https://quartr.com/events/yaskawa-electric-corporation-6506-q2-2027_FkEGQPLu)
+- Record orders at Fanuc (Apr–Jun 2026, +36.9%) and Yaskawa (fiscal Q2, Jun–Aug 2026, reported Oct 2026, +38%) on AI/semis/data-centre demand — [TechNews](https://finance.technews.tw/2026/08/03/fanuc-raises-full-year-forecast/); [Quartr](https://quartr.com/events/yaskawa-electric-corporation-6506-q2-2027_FkEGQPLu)
 - Surgical robotics compounding: ISRG Q3 2026 revenue +22%, procedures +14–15% — [SEC 10-Q](https://www.sec.gov/Archives/edgar/data/0001035267/000103526726000071/isrg-20260930.htm)
 - Humanoid revenue becoming real in China: UBTech H1 2026 humanoid revenue RMB590m (+1,445%); Unitree profitable, ~60% gross margin — [KR-Asia](https://kr-asia.com/ubtechs-full-size-humanoid-robot-revenue-jumps-1445-in-h1-2026); [36Kr](https://eu.36kr.com/en/p/3825497010229890)
 - Component demand inflecting: Hesai robotics lidar +193%; Teradyne Robotics first profitable quarter — [Hesai](https://hesai.gcs-web.com/news-releases/news-release-details/hesai-group-reports-second-quarter-2026-unaudited-financial); [CryptoBriefing](https://cryptobriefing.com/teradyne-q3-revenue-ai-demand/)
